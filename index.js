@@ -8,6 +8,9 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
+console.log("TOKEN Length:", (process.env.BOT_TOKEN || '').length);
+console.log("TOKEN Exists:", !!process.env.BOT_TOKEN);
+
 // Initialize Discord client
 const client = new Client({
   intents: [
@@ -173,6 +176,14 @@ app.get('/api/get-discord-channels', async (req, res) => {
     console.error('Error getting Discord channels:', error);
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/index.html'));
+});
+
+app.listen(PORT, () => {
+  console.log(`Frontend running on port ${PORT}`);
 });
 
 // Handle Discord bot events
