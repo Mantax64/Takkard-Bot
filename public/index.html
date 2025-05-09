@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Takkard Discord Interface</title>
+    <style>
+        :root {
+            --discord-dark: #36393f;
+            --discord-light: #dcddde;
+            --discord-blue: #7289da;
+            --discord-input: #40444b;
+            --discord-channel: #2f3136;
+            --discord-red: #f04747;
+            --discord-green: #43b581;
+            --discord-yellow: #faa61a;
+        }
+        
+        body {
+            font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: var(--discord-dark);
+            color: var(--discord-light);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .messages-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            background-color: var(--discord-dark);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            word-break: break-word;
+        }
+        
+        .message-username {
+            font-weight: bold;
+            color: #fff;
+            margin-right: 8px;
+        }
+        
+        .message-content {
+            color: var(--discord-light);
+        }
+        
+        .message-image {
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 3px;
+            margin-top: 5px;
+        }
+        
+        .channel-selector {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        #channel-select {
+            background-color: var(--discord-input);
+            color: var(--discord-light);
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 200px;
+        }
+        
+        .channel-status {
+            margin-top: 5px;
+            font-size: 12px;
+            height: 15px;
+        }
+        
+        .channel-error {
+            color: var(--discord-red);
+        }
+        
+        .channel-success {
+            color: var(--discord-green);
+        }
+        
+        .channel-warning {
+            color: var(--discord-yellow);
+        }
+        
+        option.channel-exists {
+            color: var(--discord-light);
+        }
+        
+        option.channel-missing {
+            color: var(--discord-red);
+        }
+        
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        #username-input {
+            background-color: var(--discord-input);
+            color: var(--discord-light);
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 150px;
+        }
+        
+        .message-input-container {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            background-color: var(--discord-input);
+            border-radius: 8px;
+            padding: 0 10px;
+        }
+        
+        #message-input {
+            background-color: transparent;
+            border: none;
+            color: var(--discord-light);
+            padding: 12px 0;
+            font-size: 14px;
+            width: 100%;
+            outline: none;
+        }
+        
+        .upload-button {
+            background: none;
+            border: none;
+            color: #b9bbbe;
+            cursor: pointer;
+            padding: 0 5px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .upload-button:hover {
+            color: var(--discord-light);
+        }
+        
+        .send-button {
+            background-color: var(--discord-blue);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .send-button:hover {
+            background-color: #5e78d5;
+        }
+        
+        .file-preview {
+            display: none;
+            margin-top: 10px;
+            background-color: #2f3136;
+            border-radius: 4px;
+            padding: 5px;
+            align-items: center;
+        }
+        
+        .file-preview img {
+            max-height: 100px;
+            max-width: 100px;
+            border-radius: 3px;
+        }
+        
+        .file-info {
+            margin-left: 10px;
+            flex-grow: 1;
+        }
+        
+        .remove-file {
+            color: #b9bbbe;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        #file-input {
+            display: none;
+        }
+        
+        .upload-instructions {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: var(--discord-channel);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .upload-instructions p {
+            margin: 0 0 5px 0;
+            color: var(--discord-light);
+        }
+        
+        .upload-instructions ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #b9bbbe;
+        }
+        
+        .upload-instructions li {
+            margin-bottom: 3px;
+        }
+        
+        .message-input-container.drag-over {
+            background-color: #454950;
+            box-shadow: 0 0 5px 2px var(--discord-blue);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Takkard Discord Interface</h1>
+        </div>
+        
+        <div class="messages-container" id="messages-container"></div>
+        
+        <div class="channel-selector">
+            <select id="channel-select">
+                <option value="">Loading channels...</option>
+            </select>
+            <div id="channel-status" class="channel-status"></div>
+        </div>
+        
+        <div class="input-container">
+            <input type="text" id="username-input" placeholder="Username" autocomplete="off">
+            <div class="message-input-container" id="drop-area">
+                <input type="text" id="message-input" placeholder="Message" autocomplete="off">
+                <label for="file-input" class="upload-button">+</label>
+                <input type="file" id="file-input" accept="image/*">
+            </div>
+            <button class="send-button" id="send-button">Send</button>
+        </div>
+        
+        <div class="file-preview" id="file-preview">
+            <img id="file-preview-image" src="" alt="Preview">
+            <div class="file-info">
+                <div id="file-name"></div>
+            </div>
+            <div class="remove-file" id="remove-file">×</div>
+        </div>
+        
+        <div class="status-indicator" id="status-indicator"></div>
+        <div class="upload-instructions">
+            <p>You can upload images by:</p>
+            <ul>
+                <li>Clicking the + button</li>
+                <li>Dragging & dropping files onto the message box</li>
+                <li>Pasting from clipboard (Ctrl+V / Cmd+V)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const messageInput = document.getElementById('message-input');
+        const usernameInput = document.getElementById('username-input');
+        const channelSelect = document.getElementById('channel-select');
+        const channelStatus = document.getElementById('channel-status');
+        const sendButton = document.getElementById('send-button');
+        const messagesContainer = document.getElementById('messages-container');
+        const fileInput = document.getElementById('file-input');
+        const filePreview = document.getElementById('file-preview');
+        const filePreviewImage = document.getElementById('file-preview-image');
+        const fileName = document.getElementById('file-name');
+        const removeFile = document.getElementById('remove-file');
+        const statusIndicator = document.getElementById('status-indicator');
+        
+        let selectedFile = null;
+        
+        // Load channels first, then messages
+        loadChannels().then(() => {
+            if (channelSelect.value) {
+                loadMessages();
+            }
+        });
+        
+        channelSelect.addEventListener('change', loadMessages);
+        
+        // Setup event listeners
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Drag and drop functionality
+        const dropArea = document.getElementById('drop-area');
+        
+        // Prevent defaults for all drag events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        // Visual feedback for drag actions
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        // Handle drop event
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        // Handle paste events for the message input
+        messageInput.addEventListener('paste', handlePaste, false);
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        function highlight() {
+            dropArea.classList.add('drag-over');
+        }
+        
+        function unhighlight() {
+            dropArea.classList.remove('drag-over');
+        }
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            if (dt.files && dt.files.length) {
+                handleFiles(dt.files);
+            }
+        }
+        
+        function handlePaste(e) {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const file = items[i].getAsFile();
+                    handleFiles([file]);
+                    break;
+                }
+            }
+        }
+        
+        function handleFiles(files) {
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type.startsWith('image/')) {
+                    selectedFile = file;
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        filePreviewImage.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                    
+                    fileName.textContent = file.name;
+                    filePreview.style.display = 'flex';
+                } else {
+                    statusIndicator.textContent = 'Only image files are supported';
+                    setTimeout(() => {
+                        statusIndicator.textContent = '';
+                    }, 3000);
+                }
+            }
+        }
+        
+        fileInput.addEventListener('change', function(e) {
+            if (fileInput.files.length > 0) {
+                handleFiles(fileInput.files);
+            }
+        });
+        
+        removeFile.addEventListener('click', function() {
+            selectedFile = null;
+            fileInput.value = '';
+            filePreview.style.display = 'none';
+        });
+        
+        // Function to send messages to the Discord bot backend
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            const username = usernameInput.value.trim() || 'Anonymous';
+            const channel = channelSelect.value;
+            
+            if (!message && !selectedFile) {
+                return;
+            }
+            
+            if (!channel) {
+                statusIndicator.textContent = 'Error: Please select a channel';
+                return;
+            }
+            
+            statusIndicator.textContent = 'Sending message...';
+            
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('message', message);
+            formData.append('channel', channel);
+            
+            if (selectedFile) {
+                formData.append('file', selectedFile);
+            }
+            
+            fetch('/api/send-discord-message', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    messageInput.value = '';
+                    if (selectedFile) {
+                        selectedFile = null;
+                        fileInput.value = '';
+                        filePreview.style.display = 'none';
+                    }
+                    statusIndicator.textContent = 'Message sent!';
+                    setTimeout(() => {
+                        statusIndicator.textContent = '';
+                    }, 3000);
+                    
+                    // Reload messages
+                    loadMessages();
+                } else {
+                    statusIndicator.textContent = 'Error: ' + data.error;
+                }
+            })
+            .catch(error => {
+                statusIndicator.textContent = 'Error sending message: ' + error;
+            });
+        }
+        
+        // Function to load messages from the selected channel
+        function loadMessages() {
+            const channel = channelSelect.value;
+            
+            // Only attempt to load messages if a channel is selected
+            if (!channel) {
+                messagesContainer.innerHTML = '<div class="message">Please select a channel to view messages</div>';
+                return;
+            }
+            
+            statusIndicator.textContent = 'Loading messages...';
+            
+            fetch(`/api/get-discord-messages?channel=${channel}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayMessages(data.messages);
+                        statusIndicator.textContent = '';
+                    } else {
+                        statusIndicator.textContent = 'Error: ' + data.error;
+                        
+                        // If the channel is invalid, refresh the channel list
+                        if (data.error === 'Invalid channel') {
+                            loadChannels();
+                        }
+                    }
+                })
+                .catch(error => {
+                    statusIndicator.textContent = 'Error loading messages: ' + error;
+                });
+        }
+        
+        // Function to display messages in the UI
+        function displayMessages(messages) {
+            messagesContainer.innerHTML = '';
+            
+            if (messages.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'message';
+                emptyMessage.textContent = 'No messages in this channel yet.';
+                messagesContainer.appendChild(emptyMessage);
+                return;
+            }
+            
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                
+                const usernameSpan = document.createElement('span');
+                usernameSpan.className = 'message-username';
+                usernameSpan.textContent = msg.username;
+                
+                const contentSpan = document.createElement('span');
+                contentSpan.className = 'message-content';
+                contentSpan.textContent = msg.content;
+                
+                messageDiv.appendChild(usernameSpan);
+                messageDiv.appendChild(contentSpan);
+                
+                if (msg.imageUrl) {
+                    const imageElement = document.createElement('img');
+                    imageElement.src = msg.imageUrl;
+                    imageElement.className = 'message-image';
+                    imageElement.alt = 'Attached image';
+                    messageDiv.appendChild(document.createElement('br'));
+                    messageDiv.appendChild(imageElement);
+                }
+                
+                messagesContainer.appendChild(messageDiv);
+            });
+            
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // Set focus to message input
+        messageInput.focus();
+        
+        // Function to load available channels from the Discord server
+        async function loadChannels() {
+            try {
+                channelStatus.textContent = 'Loading channels...';
+                channelStatus.className = 'channel-status';
+                
+                const response = await fetch('/api/get-discord-channels');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Clear the dropdown
+                    channelSelect.innerHTML = '';
+                    
+                    // If no channels are configured or found
+                    if (data.channels.configured.length === 0) {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = 'No channels configured';
+                        channelSelect.appendChild(option);
+                        
+                        channelStatus.textContent = 'No channels configured in the bot';
+                        channelStatus.className = 'channel-status channel-error';
+                        return;
+                    }
+                    
+                    // Add configured channels to the dropdown
+                    let hasValidChannels = false;
+                    data.channels.configured.forEach(channel => {
+                        const option = document.createElement('option');
+                        option.value = channel.configName;
+                        
+                        // Show both the configured name and actual Discord channel name if different
+                        if (channel.exists) {
+                            if (channel.configName !== channel.name) {
+                                option.textContent = `${channel.configName} (${channel.name})`;
+                            } else {
+                                option.textContent = channel.name;
+                            }
+                            option.className = 'channel-exists';
+                            hasValidChannels = true;
+                        } else {
+                            option.textContent = `${channel.configName} (not found)`;
+                            option.className = 'channel-missing';
+                        }
+                        
+                        channelSelect.appendChild(option);
+                    });
+                    
+                    if (hasValidChannels) {
+                        channelStatus.textContent = 'Channels loaded successfully';
+                        channelStatus.className = 'channel-status channel-success';
+                        
+                        // Clear status after 3 seconds
+                        setTimeout(() => {
+                            channelStatus.textContent = '';
+                        }, 3000);
+                    } else {
+                        channelStatus.textContent = 'Warning: No valid channels found';
+                        channelStatus.className = 'channel-status channel-warning';
+                    }
+                } else {
+                    channelStatus.textContent = 'Error: ' + data.error;
+                    channelStatus.className = 'channel-status channel-error';
+                }
+            } catch (error) {
+                channelStatus.textContent = 'Error loading channels: ' + error;
+                channelStatus.className = 'channel-status channel-error';
+                
+                // Add a fallback option
+                channelSelect.innerHTML = '';
+                const option = document.createElement('option');
+                option.value = 'general';
+                option.textContent = 'general (fallback)';
+                channelSelect.appendChild(option);
+            }
+        }
+        
+        // Poll for new messages every 5 seconds
+        setInterval(loadMessages, 5000);
+        
+        // Reload channels every 30 seconds to check for changes
+        setInterval(loadChannels, 30000);
+    </script>
+</body>
+</html>
