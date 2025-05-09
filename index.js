@@ -49,7 +49,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Map of channel names to Discord channel IDs (replace these with your actual channel IDs)
 const channelMap = {
-  'general': process.env.CHANNEL_DEBUG
+  'DEBUG': process.env.CHANNEL_DEBUG,
+  'GANGEST': process.env.CHANNEL_GANGEST,
+  'MOD TEAM': process.env.CHANNEL_MODTEAM
 };
 
 // Cache to store recent messages for each channel
