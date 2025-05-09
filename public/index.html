@@ -471,7 +471,7 @@
                 return;
             }
             
-            statusIndicator.textContent = 'Loading messages...';
+            //statusIndicator.textContent = 'Loading messages...';
             
             fetch(`/api/get-discord-messages?channel=${channel}`)
                 .then(response => response.json())
@@ -542,79 +542,81 @@
         // Function to load available channels from the Discord server
         async function loadChannels() {
             try {
-                channelStatus.textContent = 'Loading channels...';
-                channelStatus.className = 'channel-status';
-                
-                const response = await fetch('/api/get-discord-channels');
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Clear the dropdown
-                    channelSelect.innerHTML = '';
-                    
-                    // If no channels are configured or found
-                    if (data.channels.configured.length === 0) {
-                        const option = document.createElement('option');
-                        option.value = '';
-                        option.textContent = 'No channels configured';
-                        channelSelect.appendChild(option);
-                        
-                        channelStatus.textContent = 'No channels configured in the bot';
-                        channelStatus.className = 'channel-status channel-error';
-                        return;
-                    }
-                    
-                    // Add configured channels to the dropdown
-                    let hasValidChannels = false;
-                    data.channels.configured.forEach(channel => {
-                        const option = document.createElement('option');
-                        option.value = channel.configName;
-                        
-                        // Show both the configured name and actual Discord channel name if different
-                        if (channel.exists) {
-                            if (channel.configName !== channel.name) {
-                                option.textContent = `${channel.configName} (${channel.name})`;
-                            } else {
-                                option.textContent = channel.name;
-                            }
-                            option.className = 'channel-exists';
-                            hasValidChannels = true;
-                        } else {
-                            option.textContent = `${channel.configName} (not found)`;
-                            option.className = 'channel-missing';
-                        }
-                        
-                        channelSelect.appendChild(option);
-                    });
-                    
-                    if (hasValidChannels) {
-                        channelStatus.textContent = 'Channels loaded successfully';
-                        channelStatus.className = 'channel-status channel-success';
-                        
-                        // Clear status after 3 seconds
-                        setTimeout(() => {
-                            channelStatus.textContent = '';
-                        }, 3000);
-                    } else {
-                        channelStatus.textContent = 'Warning: No valid channels found';
-                        channelStatus.className = 'channel-status channel-warning';
-                    }
-                } else {
-                    channelStatus.textContent = 'Error: ' + data.error;
-                    channelStatus.className = 'channel-status channel-error';
-                }
-            } catch (error) {
-                channelStatus.textContent = 'Error loading channels: ' + error;
-                channelStatus.className = 'channel-status channel-error';
-                
-                // Add a fallback option
-                channelSelect.innerHTML = '';
-                const option = document.createElement('option');
-                option.value = 'general';
-                option.textContent = 'general (fallback)';
-                channelSelect.appendChild(option);
+        channelStatus.textContent = 'Loading channels...';
+        channelStatus.className = 'channel-status';
+
+        const response = await fetch('/api/get-discord-channels');
+        const data = await response.json();
+
+        if (data.success) {
+          // ✅ Save currently selected channel
+          const previouslySelected = channelSelect.value;
+
+          channelSelect.innerHTML = '';
+
+          if (data.channels.configured.length === 0) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No channels configured';
+            channelSelect.appendChild(option);
+
+            channelStatus.textContent = 'No channels configured in the bot';
+            channelStatus.className = 'channel-status channel-error';
+            return;
+          }
+
+          let hasValidChannels = false;
+          data.channels.configured.forEach(channel => {
+            const option = document.createElement('option');
+            option.value = channel.configName;
+
+            if (channel.exists) {
+              if (channel.configName !== channel.name) {
+                option.textContent = `${channel.configName} (${channel.name})`;
+              } else {
+                option.textContent = channel.name;
+              }
+              option.className = 'channel-exists';
+              hasValidChannels = true;
+            } else {
+              option.textContent = `${channel.configName} (not found)`;
+              option.className = 'channel-missing';
             }
+
+            channelSelect.appendChild(option);
+          });
+
+          // Re-select the previously selected channel, if it still exists
+          if (previouslySelected && [...channelSelect.options].some(opt => opt.value === previouslySelected)) {
+            channelSelect.value = previouslySelected;
+          }
+
+          if (hasValidChannels) {
+            channelStatus.textContent = 'Channels loaded successfully';
+            channelStatus.className = 'channel-status channel-success';
+            setTimeout(() => {
+              channelStatus.textContent = '';
+            }, 3000);
+          } else {
+            channelStatus.textContent = 'Warning: No valid channels found';
+            channelStatus.className = 'channel-status channel-warning';
+          }
+        } else {
+          channelStatus.textContent = 'Error: ' + data.error;
+          channelStatus.className = 'channel-status channel-error';
         }
+    } catch (error) {
+        channelStatus.textContent = 'Error loading channels: ' + error;
+        channelStatus.className = 'channel-status channel-error';
+
+        // Add a fallback option
+        channelSelect.innerHTML = '';
+        const option = document.createElement('option');
+        option.value = 'general';
+        option.textContent = 'general (fallback)';
+        channelSelect.appendChild(option);
+        }
+    }
         
         // Poll for new messages every 5 seconds
         setInterval(loadMessages, 5000);
