@@ -134,19 +134,18 @@ app.get('/api/get-discord-messages', async (req, res) => {
 // API endpoint to get available channels from the Discord server
 app.get('/api/get-discord-channels', async (req, res) => {
   try {
-    // Get the Discord guild (server) ID from the first channel
     const anyChannelId = Object.values(channelMap)[0];
     if (!anyChannelId) {
       return res.status(404).json({ success: false, error: 'No channels configured' });
     }
-    
+
     const anyChannel = await client.channels.fetch(anyChannelId);
     if (!anyChannel || !anyChannel.guild) {
       return res.status(404).json({ success: false, error: 'Could not fetch Discord server' });
     }
-    
+
     const guild = anyChannel.guild;
-    
+
     // Get all text channels from the guild
     const textChannels = guild.channels.cache
       .filter(c => c.type === 0) // 0 is GUILD_TEXT
@@ -155,26 +154,27 @@ app.get('/api/get-discord-channels', async (req, res) => {
         name: channel.name,
         configured: Object.values(channelMap).includes(channel.id)
       }));
-    
-    // Get the configured channels with their proper names
-    const configuredChannels = Object.entries(channelMap).map(([configName, channelId]) => {
-      const channel = guild.channels.cache.get(channelId);
-      return {
-        configName,
-        id: channelId,
-        name: channel ? channel.name : configName,
-        exists: !!channel
-      };
-    });
-    
-    res.json({ 
-      success: true, 
+
+    // Fetch and verify each configured channel
+    const configuredChannels = await Promise.all(
+      Object.entries(channelMap).map(async ([configName, channelId]) => {
+        const channel = await guild.channels.fetch(channelId).catch(() => null);
+        return {
+          configName,
+          id: channelId,
+          name: channel ? channel.name : configName,
+          exists: !!channel
+        };
+      })
+    );
+
+    res.json({
+      success: true,
       channels: {
         all: textChannels,
         configured: configuredChannels
       }
     });
-    
   } catch (error) {
     console.error('Error getting Discord channels:', error);
     res.status(500).json({ success: false, error: error.message });
