@@ -203,34 +203,31 @@ async function fetchRecentMessages() {
     for (const [channelName, channelId] of Object.entries(channelMap)) {
       const channel = await client.channels.fetch(channelId);
       const messages = await channel.messages.fetch({ limit: 10 });
-      
+
       const cachedMessages = [];
-      
+
       messages.reverse().forEach(msg => {
-        // Parse username from the message format "**USERNAME**: MESSAGE"
-        const content = msg.content;
         let username = 'Unknown';
-        let messageContent = content;
-        
-        const match = content.match(/^\*\*(.*?)\*\*: (.*)$/);
-        if (match) {
-          username = match[1];
-          messageContent = match[2];
+        let messageContent = msg.content;
+
+        // ✅ Get author username directly
+        if (msg.author) {
+          username = msg.member?.displayName || msg.author.username;
         }
-        
+
         const messageData = {
           username,
           content: messageContent
         };
-        
+
         // Add image URL if present
         if (msg.attachments.size > 0) {
           messageData.imageUrl = msg.attachments.first().url;
         }
-        
+
         cachedMessages.push(messageData);
       });
-      
+
       messageCache[channelName] = cachedMessages;
     }
     console.log('Message cache initialized with recent messages');
@@ -238,6 +235,7 @@ async function fetchRecentMessages() {
     console.error('Error fetching recent messages:', error);
   }
 }
+
 
 // Handle new messages from Discord to update the cache
 client.on('messageCreate', async (message) => {
