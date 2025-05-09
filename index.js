@@ -54,6 +54,7 @@ const channelMap = {
   'GANGEST': process.env.CHANNEL_GANGEST,
   'MOD TEAM': process.env.CHANNEL_MODTEAM
 };
+console.log('Configured channelMap:', channelMap);
 
 // Cache to store recent messages for each channel
 const messageCache = {};
@@ -159,7 +160,7 @@ app.get('/api/get-discord-channels', async (req, res) => {
     const configuredChannels = await Promise.all(
       Object.entries(channelMap).map(async ([configName, channelId]) => {
         try {
-          const channel = await guild.channels.fetch(channelId);
+          const channel = await client.channels.fetch(channelId);
           return {
             configName,
             id: channelId,
