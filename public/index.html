@@ -297,6 +297,7 @@
         const removeFile = document.getElementById('remove-file');
         const statusIndicator = document.getElementById('status-indicator');
         
+        let lastMessageHash = '';
         let selectedFile = null;
         
         // Load channels first, then messages
@@ -463,35 +464,35 @@
         
         // Function to load messages from the selected channel
         function loadMessages() {
-            const channel = channelSelect.value;
-            
-            // Only attempt to load messages if a channel is selected
-            if (!channel) {
-                messagesContainer.innerHTML = '<div class="message">Please select a channel to view messages</div>';
-                return;
-            }
-            
-            //statusIndicator.textContent = 'Loading messages...';
-            
-            fetch(`/api/get-discord-messages?channel=${channel}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        displayMessages(data.messages);
-                        statusIndicator.textContent = '';
-                    } else {
-                        statusIndicator.textContent = 'Error: ' + data.error;
-                        
-                        // If the channel is invalid, refresh the channel list
-                        if (data.error === 'Invalid channel') {
-                            loadChannels();
-                        }
-                    }
-                })
-                .catch(error => {
-                    statusIndicator.textContent = 'Error loading messages: ' + error;
-                });
+        const channel = channelSelect.value;
+
+        if (!channel) {
+          messagesContainer.innerHTML = '<div class="message">Please select a channel to view messages</div>';
+          return;
         }
+
+        fetch(`/api/get-discord-messages?channel=${channel}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              const newHash = JSON.stringify(data.messages);
+              if (newHash !== lastMessageHash) {
+                lastMessageHash = newHash;
+                displayMessages(data.messages);
+              }
+              statusIndicator.textContent = '';
+            } else {
+              statusIndicator.textContent = 'Error: ' + data.error;
+              if (data.error === 'Invalid channel') {
+                loadChannels();
+              }
+            }
+          })
+          .catch(error => {
+            statusIndicator.textContent = 'Error loading messages: ' + error;
+          });
+      }
+
         
         // Function to display messages in the UI
         function displayMessages(messages) {
