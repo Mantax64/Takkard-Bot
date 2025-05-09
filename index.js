@@ -158,13 +158,23 @@ app.get('/api/get-discord-channels', async (req, res) => {
     // Fetch and verify each configured channel
     const configuredChannels = await Promise.all(
       Object.entries(channelMap).map(async ([configName, channelId]) => {
-        const channel = await guild.channels.fetch(channelId).catch(() => null);
-        return {
-          configName,
-          id: channelId,
-          name: channel ? channel.name : configName,
-          exists: !!channel
-        };
+        try {
+          const channel = await guild.channels.fetch(channelId);
+          return {
+            configName,
+            id: channelId,
+            name: channel?.name || configName,
+            exists: !!channel
+          };
+        } catch (err) {
+          console.warn(`Failed to fetch channel ${configName} (${channelId}):`, err.message);
+          return {
+            configName,
+            id: channelId,
+            name: configName,
+            exists: false
+          };
+        }
       })
     );
 
@@ -189,10 +199,19 @@ app.listen(PORT, () => {
   console.log(`Frontend running on port ${PORT}`);
 });
 
-// Handle Discord bot events
-client.once('ready', () => {
+client.once('ready', async () => {
   console.log(`Bot is online! Logged in as ${client.user.tag}`);
-  
+
+  // OPTIONAL: Debug guild and channels
+  try {
+    console.log('All fetched channels:');
+    for (const channel of allChannels.values()) {
+      console.log(`- ${channel.name} (${channel.id})`);
+    }
+  } catch (err) {
+    console.error('Error fetching guild channels:', err.message);
+  }
+
   // Initialize message cache with recent messages
   fetchRecentMessages();
 });
